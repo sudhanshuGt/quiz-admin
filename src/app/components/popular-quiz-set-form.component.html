@@ -1,0 +1,103 @@
+<div class="form-container">
+  <h2>Add Popular Quiz Set</h2>
+
+  <mat-tab-group>
+    <!-- Form Upload Tab -->
+    <mat-tab label="Form Upload">
+      <form [formGroup]="form" (ngSubmit)="saveFormQuiz()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Set Title</mat-label>
+          <input matInput formControlName="title">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Subject</mat-label>
+          <mat-select formControlName="subject">
+            <mat-option *ngFor="let sub of subjects" [value]="sub">{{sub}}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <section>
+          <h3>Questions</h3>
+          <div class="btn-row">
+            <button mat-raised-button color="primary" type="button" (click)="addQuestion()">
+              <mat-icon>add</mat-icon> Add Question
+            </button>
+            <button mat-stroked-button color="warn" type="button" (click)="clearQuestions()" [disabled]="questions.length===0">
+              Clear All
+            </button>
+          </div>
+
+          <mat-card *ngFor="let q of questions.controls; let i=index" [formGroup]="q" class="question-card">
+            <div class="question-header">
+              <strong>Q{{i+1}}</strong>
+              <button mat-icon-button color="warn" type="button" (click)="removeQuestion(i)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Question Title</mat-label>
+              <input matInput formControlName="title">
+            </mat-form-field>
+
+            <div formArrayName="options" class="options-grid">
+              <mat-form-field appearance="outline" class="full-width" *ngFor="let _ of [0,1,2,3]; let j=index">
+                <mat-label>Option {{j+1}}</mat-label>
+                <input matInput [formControlName]="j">
+              </mat-form-field>
+            </div>
+          </mat-card>
+        </section>
+
+        <button mat-raised-button color="accent" type="submit" [disabled]="form.invalid || saving || questions.length===0">
+          {{ saving ? 'Saving…' : 'Save Popular Quiz Set' }}
+        </button>
+
+        <p *ngIf="msg" class="status-msg">{{ msg }}</p>
+      </form>
+    </mat-tab>
+
+    <!-- Bulk Upload Tab -->
+    <mat-tab label="Bulk Upload">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Subject</mat-label>
+        <mat-select [(ngModel)]="form.value.subject" name="bulkSubject">
+          <mat-option *ngFor="let sub of subjects" [value]="sub">{{sub}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Quiz Set Title</mat-label>
+            <input matInput formControlName="title" [(ngModel)]="form.value.title" placeholder="Enter title" />
+          </mat-form-field>
+
+       <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Paste bulk questions (separate each question block with a blank line)</mat-label>
+            <textarea matInput rows="10" [(ngModel)]="bulkText" name="bulkTextArea"></textarea>
+          </mat-form-field>
+      <div class="btn-row">
+        <button mat-raised-button color="primary" (click)="parseBulkText()">Parse</button>
+        <button mat-stroked-button color="warn" (click)="clearBulkPreview()" [disabled]="!bulkPreview.length">Clear All</button>
+      </div>
+
+      <div *ngIf="showBulkPreview">
+        <mat-card *ngFor="let q of bulkPreview; let i=index" class="question-card">
+          <div class="question-header">
+            <strong>{{q.title}}</strong>
+            <button mat-icon-button color="warn" (click)="removeBulkQuestion(i)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <ul>
+            <li *ngFor="let opt of q.options">{{ opt }}</li>
+          </ul>
+        </mat-card>
+
+        <button mat-raised-button color="accent" (click)="saveBulkQuiz()" [disabled]="saving || !bulkPreview.length">
+          {{ saving ? 'Saving…' : 'Save Bulk Quiz' }}
+        </button>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>
