@@ -1,0 +1,97 @@
+<div class="form-container">
+  <mat-tab-group>
+
+    <!-- Tab 1: Single Quiz Form -->
+    <mat-tab label="Form Upload">
+      <mat-card>
+        <form [formGroup]="quizForm" (ngSubmit)="addQuiz()">
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Question</mat-label>
+            <input matInput formControlName="question" placeholder="Enter question" />
+          </mat-form-field>
+
+          <div formArrayName="options">
+            <div *ngFor="let opt of options.controls; let i = index">
+              <mat-form-field class="full-width" appearance="outline">
+                <mat-label>Option {{ i + 1 }}</mat-label>
+                <input matInput [formControlName]="i" placeholder="Option {{ i + 1 }}" />
+              </mat-form-field>
+            </div>
+          </div>
+
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Correct Answer</mat-label>
+            <input matInput formControlName="correctAnswer" placeholder="Enter correct answer" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Subject</mat-label>
+            <mat-select formControlName="subject">
+              <mat-option *ngFor="let s of subjects" [value]="s">{{ s }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="actions-row">
+            <button mat-raised-button color="primary" type="submit">Add Single Quiz</button>
+          </div>
+        </form>
+      </mat-card>
+    </mat-tab>
+
+    <!-- Tab 2: Bulk Upload -->
+    <mat-tab label="Bulk Upload">
+      <mat-card>
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Paste bulk questions</mat-label>
+          <textarea matInput rows="10" [(ngModel)]="bulkText" name="bulkTextArea"></textarea>
+        </mat-form-field>
+
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Subject (applies to all)</mat-label>
+          <mat-select [(ngModel)]="bulkSubject" name="bulkSubject">
+            <mat-option *ngFor="let s of subjects" [value]="s">{{ s }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div class="actions-row">
+          <button mat-stroked-button color="accent" (click)="parseBulkText()">Preview</button>
+          <button mat-stroked-button color="warn" (click)="clearAllPreview()">Clear All</button>
+        </div>
+
+        <div *ngIf="parsingError" class="error-msg">{{ parsingError }}</div>
+      </mat-card>
+
+      <!-- Missing Answer Mapping -->
+      <mat-card *ngIf="bulkPreview.length && hasMissingAnswers">
+        <mat-card-title>Provide missing answers</mat-card-title>
+        <p>Enter one answer per line, order matches missing questions:</p>
+        <textarea matInput rows="3" [(ngModel)]="fallbackAnswersText"></textarea>
+        <button mat-raised-button color="primary" (click)="mapFallbackAnswers()">Map Answers</button>
+      </mat-card>
+
+      <!-- Bulk Preview -->
+      <div *ngIf="bulkPreview.length" class="preview-grid">
+        <mat-card *ngFor="let q of bulkPreview; let i = index" class="preview-card">
+          <mat-card-header>
+            <mat-card-title>{{ q.title }}</mat-card-title>
+            <button mat-icon-button color="warn" (click)="deletePreview(i)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-card-header>
+          <mat-card-content>
+            <ol type="a">
+              <li *ngFor="let opt of q.options">{{ opt }}</li>
+            </ol>
+            <p><strong>Correct Answer:</strong> {{ q.correctAnswer || '❌ Missing' }}</p>
+            <p><strong>Subject:</strong> {{ bulkSubject || q.subject || '—' }}</p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div *ngIf="bulkPreview.length" class="actions-row">
+        <button mat-raised-button color="primary" (click)="uploadBulk()">Upload All ({{ bulkPreview.length }})</button>
+        <button mat-stroked-button color="warn" (click)="clearAllPreview()">Delete All</button>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

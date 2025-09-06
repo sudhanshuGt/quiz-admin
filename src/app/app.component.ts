@@ -13,6 +13,9 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       <nav class="nav-links">
         <a routerLink="/single-quiz" routerLinkActive="active" (click)="closeMenu()">Single Quiz</a>
         <a routerLink="/popular-quiz" routerLinkActive="active" (click)="closeMenu()">Popular Quiz Set</a>
+        <a routerLink="/subjects" routerLinkActive="active" (click)="closeMenu()">Subjects</a>
+        <a routerLink="/ebooks" routerLinkActive="active" (click)="closeMenu()">E-Books</a>
+
       </nav>
     </header>
 

@@ -1,0 +1,28 @@
+<mat-card class="ebook-card">
+  <h2>Add E-Book</h2>
+
+  <form [formGroup]="form" (ngSubmit)="saveEbook()">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>E-Book Title</mat-label>
+      <input matInput formControlName="title" placeholder="Enter e-book title" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Subject</mat-label>
+      <mat-select formControlName="subject">
+        <mat-option *ngFor="let sub of subjects" [value]="sub">{{ sub }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>PDF URL</mat-label>
+      <input matInput formControlName="url" placeholder="https://example.com/ebook.pdf" />
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+      {{ saving ? 'Saving…' : 'Save E-Book' }}
+    </button>
+
+    <p class="status-msg" *ngIf="msg">{{ msg }}</p>
+  </form>
+</mat-card>

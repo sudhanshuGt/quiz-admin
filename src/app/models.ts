@@ -1,15 +1,23 @@
 // models.ts
 export interface SingleQuiz {
   title: string;
-  options: [string, string, string, string];
-  subject?: string;   // <-- optional tag
+  options: string[];
+  correctAnswer: string;   // store the option text
+  subject?: string;
 }
+
+export interface BulkPreviewQuiz extends SingleQuiz {
+  missingAnswer: boolean;
+}
+
 
 export interface PopularQuizSet {
   title: string;
   subject?: string;
   questions: {
     title: string;
-    options: [string, string, string, string];
+    options: string[];
+    correctAnswer: string;
   }[];
 }
+

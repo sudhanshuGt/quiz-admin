@@ -1,0 +1,33 @@
+<div class="subject-layout">
+  <!-- Left side: Subject list -->
+  <mat-card class="left-panel">
+    <h3 class="panel-title">📚 Available Subjects</h3>
+    <mat-nav-list>
+      <mat-list-item
+        *ngFor="let sub of subjects"
+        (click)="selectSubject(sub)"
+        [class.active]="sub === selectedSubject">
+        <mat-icon matListIcon>menu_book</mat-icon>
+        <div matLine>{{ sub }}</div>
+      </mat-list-item>
+    </mat-nav-list>
+  </mat-card>
+
+  <!-- Right side: Add subject form -->
+  <mat-card class="right-panel">
+    <h2 class="panel-title">➕ Add New Subject</h2>
+
+    <form [formGroup]="form" (ngSubmit)="addSubject()" class="subject-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Subject Name</mat-label>
+        <input matInput formControlName="name" placeholder="Enter subject name" />
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+        {{ saving ? 'Saving…' : 'Add Subject' }}
+      </button>
+    </form>
+
+    <p class="status-msg" *ngIf="msg">{{ msg }}</p>
+  </mat-card>
+</div>

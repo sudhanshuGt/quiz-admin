@@ -1,0 +1,54 @@
+.subject-layout {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  flex-wrap: wrap;
+}
+
+/* On larger screens → side by side */
+.left-panel, .right-panel {
+  flex: 1;
+  min-width: 300px;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 768px) {
+  .subject-layout {
+    flex-direction: column;
+  }
+}
+
+.panel-title {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+/* Subject list items */
+mat-list-item {
+  cursor: pointer;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  transition: background 0.2s;
+}
+
+mat-list-item:hover {
+  background: #f0f0f0;
+}
+
+mat-list-item.active {
+  background: #1976d2;
+  color: white;
+}
+
+/* Form spacing */
+.subject-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.full-width {
+  width: 100%;
+}
