@@ -52,6 +52,8 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
 
   fallbackAnswersText = '';
 
+   
+
   constructor() {
     this.quizForm = this.fb.group({
       question: ['', Validators.required],
@@ -118,7 +120,7 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
   }
 
   // ----------------- Bulk Parsing -----------------
-  parseBulkText(fallbackAnswers: string[] = []): void {
+ parseBulkText(fallbackAnswers: string[] = []): void {
   this.bulkPreview = [];
   this.parsingError = '';
 
@@ -128,47 +130,44 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
     return;
   }
 
-  // Regex to split by numbered questions (1., 2., Q1:, etc.)
-  const questionRegex = /(\d+\.|Q\d+:)\s*/g;
-  const questionParts = raw.split(questionRegex).filter(s => s.trim() !== '');
+  // Split questions by a number + dot (English or Hindi digits supported)
+  const blocks = raw.split(/\n(?=(\d+|[०-९]+)\.)/).map(b => b.trim()).filter(Boolean);
 
   let questionIndex = 0;
 
-  for (let i = 0; i < questionParts.length; i += 2) {
-    const numberPart = questionParts[i]; // e.g., "1." or "Q1:"
-    const textPart = questionParts[i + 1]; // actual question + options + answer
+  for (const block of blocks) {
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
 
-    if (!textPart) continue;
-
-    // Split options and answer
-    const optionRegex = /([A-D1-4a-d][\)\.])\s*([^A-D1-4a-d][\)\.]?.*?)(?=(?:[A-D1-4a-d][\)\.]|Answer:|$))/g;
-    const answerRegex = /Answer:\s*(.*)/i;
+    // First line = question
+    const questionLine = lines[0].replace(/^(\d+|[०-९]+)\.\s*/, '').trim();
 
     const options: string[] = [];
     let correctAnswer: string | undefined;
 
-    let match: RegExpExecArray | null;
-    while ((match = optionRegex.exec(textPart)) !== null) {
-      options.push(match[2].trim());
+    // --- UNIVERSAL OPTION REGEX ---
+  const optionRegex = /^\s*(?:[A-Da-d]|\d{1,2}|[ivx]+|[IVXLCDM]+|[क-घ]|[०-९]+)[\.\)]?\s*(.+)$/u;
+
+
+    const answerRegex = /^Answer\s*[:\-]?\s*(.*)$/i;
+
+    for (const line of lines.slice(1)) {
+      const oMatch = line.match(optionRegex);
+      const aMatch = line.match(answerRegex);
+
+      if (oMatch && oMatch[1].trim()) {
+        options.push(oMatch[1].trim());
+      } else if (aMatch) {
+        correctAnswer = aMatch[1].trim();
+      }
     }
 
-    const answerMatch = textPart.match(answerRegex);
-    if (answerMatch) {
-      const ansText = answerMatch[1].trim();
-      // try to map label to option text
-      const label = ansText.split(')')[0].trim();
-      const optionMatch = options.find(o =>
-        o.toLowerCase().startsWith(label.toLowerCase()) ||
-        o.toLowerCase().includes(ansText.split(')').slice(1).join(')').trim().toLowerCase())
-      );
-      correctAnswer = optionMatch || ansText;
-    } else if (fallbackAnswers[questionIndex]) {
+    if (!correctAnswer && fallbackAnswers[questionIndex]) {
       correctAnswer = fallbackAnswers[questionIndex];
     }
 
-    // Push to preview
     this.bulkPreview.push({
-      title: textPart.split(/([A-D1-4a-d][\)\.])/)[0].trim(), // question text before first option
+      title: questionLine,
       options: options.slice(0, 4),
       correctAnswer: correctAnswer || '',
       subject: this.bulkSubject || ''
@@ -179,9 +178,11 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
 
   if (this.bulkPreview.length === 0) {
     this.parsingError =
-      'No valid question blocks found. Ensure each question has at least 2 options and optionally an Answer line.';
+      'No valid question blocks found. Ensure each block starts with a number and contains options.';
   }
 }
+
+
 
 
   deletePreview(index: number): void {

@@ -14,6 +14,7 @@ export interface BulkPreviewQuiz extends SingleQuiz {
 export interface PopularQuizSet {
   title: string;
   subject?: string;
+  ratings?: string[];
   questions: {
     title: string;
     options: string[];
