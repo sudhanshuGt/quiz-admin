@@ -1,7 +1,6 @@
 import { AfterViewInit, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
-
 // Material
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +10,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatTabsModule } from '@angular/material/tabs';
-
 import { QuizService } from '../../quiz.service';
 import { SingleQuiz } from '../../models';
 
@@ -35,8 +33,8 @@ interface BulkPreviewQuiz extends SingleQuiz {
     MatInputModule,
     MatSelectModule,
     MatListModule,
-    MatTabsModule
-  ]
+    MatTabsModule,
+  ],
 })
 export class SingleQuizFormComponent implements AfterViewInit, OnInit {
   private fb = inject(FormBuilder);
@@ -44,15 +42,11 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
 
   quizForm: FormGroup;
   subjects: string[] = [];
-
   bulkText = '';
   bulkSubject = '';
   bulkPreview: BulkPreviewQuiz[] = [];
   parsingError = '';
-
   fallbackAnswersText = '';
-
-   
 
   constructor() {
     this.quizForm = this.fb.group({
@@ -61,10 +55,10 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
         this.fb.control('', Validators.required),
         this.fb.control('', Validators.required),
         this.fb.control('', Validators.required),
-        this.fb.control('', Validators.required)
+        this.fb.control('', Validators.required),
       ]),
       subject: ['', Validators.required],
-      correctAnswer: ['', Validators.required]
+      correctAnswer: ['', Validators.required],
     });
   }
 
@@ -83,10 +77,11 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
   }
 
   get hasMissingAnswers(): boolean {
-    return this.bulkPreview?.some(q => !q.correctAnswer) ?? false;
+    return this.bulkPreview?.some((q) => !q.correctAnswer) ?? false;
   }
 
   // ----------------- Single Quiz -----------------
+
   async addQuiz(): Promise<void> {
     if (this.quizForm.invalid) {
       this.quizForm.markAllAsTouched();
@@ -94,7 +89,8 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
     }
 
     const v = this.quizForm.value;
-    const options = (v.options as string[]).filter(opt => opt && opt.trim());
+    const options = (v.options as string[]).filter((opt) => opt && opt.trim());
+
     if (!v.correctAnswer?.trim()) {
       alert('Correct answer is mandatory!');
       return;
@@ -104,7 +100,7 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
       title: v.question,
       options: options,
       subject: v.subject || '',
-      correctAnswer: v.correctAnswer.trim()
+      correctAnswer: v.correctAnswer.trim(),
     };
 
     try {
@@ -119,71 +115,73 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
     }
   }
 
-  // ----------------- Bulk Parsing -----------------
- parseBulkText(fallbackAnswers: string[] = []): void {
-  this.bulkPreview = [];
-  this.parsingError = '';
+  parseBulkText(fallbackAnswers: string[] = []): void {
+    this.bulkPreview = [];
+    this.parsingError = '';
 
-  const raw = (this.bulkText || '').trim();
-  if (!raw) {
-    this.parsingError = 'No text provided.';
-    return;
-  }
+    const raw = (this.bulkText || '').trim();
+    if (!raw) {
+      this.parsingError = 'No text provided.';
+      return;
+    }
 
-  // Split questions by a number + dot (English or Hindi digits supported)
-  const blocks = raw.split(/\n(?=(\d+|[०-९]+)\.)/).map(b => b.trim()).filter(Boolean);
+    const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
 
-  let questionIndex = 0;
-
-  for (const block of blocks) {
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-    if (!lines.length) continue;
-
-    // First line = question
-    const questionLine = lines[0].replace(/^(\d+|[०-९]+)\.\s*/, '').trim();
-
-    const options: string[] = [];
+    let currentQuestion = '';
+    let options: string[] = [];
     let correctAnswer: string | undefined;
+    let questionIndex = 0;
 
-    // --- UNIVERSAL OPTION REGEX ---
-  const optionRegex = /^\s*(?:[A-Da-d]|\d{1,2}|[ivx]+|[IVXLCDM]+|[क-घ]|[०-९]+)[\.\)]?\s*(.+)$/u;
+    // Matches option formats like a), 1), i), I), क), १)
+    const optionRegex = /^\s*(?:[A-Da-d]|\d+|[ivx]+|[IVXLCDM]+|[क-घ]|[०-९]+)[\.\)]\s*(.+)$/u;
 
-
-    const answerRegex = /^Answer\s*[:\-]?\s*(.*)$/i;
-
-    for (const line of lines.slice(1)) {
+    for (const line of lines) {
       const oMatch = line.match(optionRegex);
-      const aMatch = line.match(answerRegex);
 
-      if (oMatch && oMatch[1].trim()) {
+      if (oMatch) {
+        // Always treat as an option if it matches
         options.push(oMatch[1].trim());
-      } else if (aMatch) {
-        correctAnswer = aMatch[1].trim();
+      } else {
+        // Push previous question if it has at least 2 options
+        if (currentQuestion && options.length >= 2) {
+          if (!correctAnswer && fallbackAnswers[questionIndex]) {
+            correctAnswer = fallbackAnswers[questionIndex];
+          }
+
+          this.bulkPreview.push({
+            title: currentQuestion,
+            options: options.slice(0, 4),
+            correctAnswer: correctAnswer || '',
+            subject: this.bulkSubject || '',
+          });
+
+          questionIndex++;
+        }
+
+        // Start new question
+        currentQuestion = line.replace(/^\s*(?:\d+|[ivxIVXLCDM]+|[A-Da-d]|[क-घ]|[०-९]+)[\.\)]?\s*/, '');
+        options = [];
+        correctAnswer = undefined;
       }
     }
 
-    if (!correctAnswer && fallbackAnswers[questionIndex]) {
-      correctAnswer = fallbackAnswers[questionIndex];
+    // Push last question
+    if (currentQuestion && options.length >= 2) {
+      if (!correctAnswer && fallbackAnswers[questionIndex]) {
+        correctAnswer = fallbackAnswers[questionIndex];
+      }
+      this.bulkPreview.push({
+        title: currentQuestion,
+        options: options.slice(0, 4),
+        correctAnswer: correctAnswer || '',
+        subject: this.bulkSubject || '',
+      });
     }
 
-    this.bulkPreview.push({
-      title: questionLine,
-      options: options.slice(0, 4),
-      correctAnswer: correctAnswer || '',
-      subject: this.bulkSubject || ''
-    });
-
-    questionIndex++;
+    if (this.bulkPreview.length === 0) {
+      this.parsingError = 'No valid question blocks found. Ensure each question has at least 2 options.';
+    }
   }
-
-  if (this.bulkPreview.length === 0) {
-    this.parsingError =
-      'No valid question blocks found. Ensure each block starts with a number and contains options.';
-  }
-}
-
-
-
 
   deletePreview(index: number): void {
     this.bulkPreview.splice(index, 1);
@@ -198,17 +196,21 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
   }
 
   // ----------------- Bulk Upload -----------------
+
   mapFallbackAnswers(): void {
     if (!this.fallbackAnswersText.trim()) return;
-    const answers = this.fallbackAnswersText.split(/\r?\n/).map(a => a.trim());
+
+    const answers = this.fallbackAnswersText.split(/\r?\n/).map((a) => a.trim());
     let idx = 0;
-    this.bulkPreview.forEach(q => {
+
+    this.bulkPreview.forEach((q) => {
       if (!q.correctAnswer && answers[idx]) {
         q.correctAnswer = answers[idx];
         q.missingAnswer = false;
         idx++;
       }
     });
+
     this.fallbackAnswersText = '';
   }
 
@@ -216,15 +218,15 @@ export class SingleQuizFormComponent implements AfterViewInit, OnInit {
     if (!this.bulkPreview.length) return;
 
     // check if any missing correct answers remain
-    const missing = this.bulkPreview.filter(q => !q.correctAnswer);
+    const missing = this.bulkPreview.filter((q) => !q.correctAnswer);
     if (missing.length) {
       alert('Please provide all missing correct answers before uploading.');
       return;
     }
 
-    const finalList = this.bulkPreview.map(q => ({
+    const finalList = this.bulkPreview.map((q) => ({
       ...q,
-      subject: this.bulkSubject || q.subject || ''
+      subject: this.bulkSubject || q.subject || '',
     }));
 
     try {

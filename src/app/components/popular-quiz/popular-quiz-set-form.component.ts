@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatListModule } from '@angular/material/list';
-import { PopularQuizSet} from '../../models';
+import { PopularQuizSet, BulkPreviewPopularQuiz } from '../../models';
 
 @Component({
   selector: 'app-popular-quiz-set-form',
@@ -31,19 +31,18 @@ import { PopularQuizSet} from '../../models';
     MatListModule
   ]
 })
-export class PopularQuizSetFormComponent implements AfterViewInit {
+export class PopularQuizSetFormComponent implements AfterViewInit, OnInit {
   saving = false;
   msg = '';
   form!: FormGroup;
   bulkText = '';
-  bulkPreview: any[] = [];
+  bulkPreview: BulkPreviewPopularQuiz[] = [];
   showBulkPreview = false;
   parsingError = '';
-
-  subjects: string[] = [];    
+  fallbackAnswersText = '';
+  subjects: string[] = [];
 
   constructor(private fb: FormBuilder, private svc: QuizService) {}
-  
 
   ngAfterViewInit(): void {
     this.loadSubjects();
@@ -57,7 +56,7 @@ export class PopularQuizSetFormComponent implements AfterViewInit {
     });
   }
 
-    async loadSubjects() {
+  async loadSubjects() {
     this.subjects = await this.svc.getSubjects();
   }
 
@@ -87,82 +86,89 @@ export class PopularQuizSetFormComponent implements AfterViewInit {
     this.questions.clear();
   }
 
- parseBulkText(fallbackAnswers: string[] = []): void {
-  this.bulkPreview = [];
-  this.parsingError = '';
-
-  const raw = (this.bulkText || '').trim();
-  if (!raw) {
-    this.parsingError = 'No text provided.';
-    return;
+  get hasMissingAnswers(): boolean {
+    return this.bulkPreview?.some(q => q.missingAnswer) ?? false;
   }
 
-  const lines = raw.replace(/\r\n/g, '\n').split('\n');
+  onCorrectAnswerChange(index: number): void {
+    const q = this.bulkPreview[index];
+    if (q) {
+      q.missingAnswer = !q.correctAnswer?.trim();
+      // Trigger change detection
+      this.bulkPreview = [...this.bulkPreview];
+    }
+  }
 
-  let currentQuestion = '';
-  let currentOptions: string[] = [];
-  let correctAnswer: string | null = null;
-  let questionIndex = 0;
+  parseBulkText(): void {
+    this.bulkPreview = [];
+    this.parsingError = '';
 
-  const optionRegex = /^\s*([A-D1-4a-diक]+[\)\.])\s*(.*)$/u;
-  const questionRegex = /^\s*[\dQq]+[\.\:]\s*(.+)$/;
-  const answerRegex = /^Answer:\s*(.*)$/i;
+    const raw = (this.bulkText || '').trim();
+    if (!raw) {
+      this.parsingError = 'No text provided.';
+      return;
+    }
 
-  for (let line of lines) {
-    line = line.trim();
-    if (!line) continue;
+    const lines = raw.replace(/\r\n/g, '\n').split('\n');
+    let currentQuestion = '';
+    let currentOptions: string[] = [];
+    let correctAnswer: string | null = null;
 
-    const qMatch = line.match(questionRegex);
-    const aMatch = line.match(answerRegex);
-    const oMatch = line.match(optionRegex);
+    const optionRegex = /^\s*([A-Da-d1-9ivxIVXLCDMक-घ०-९]+[\)\.])\s*(.+)$/u;
+    const questionRegex = /^\s*(?:[\dQq]+[\.\:]|)(.+)$/;
+    const answerRegex = /^Answer[:\-]?\s*(.*)$/i;
 
-    if (qMatch) {
-      if (currentQuestion && currentOptions.length >= 2) {
-        if (!correctAnswer && fallbackAnswers[questionIndex]) {
-          correctAnswer = fallbackAnswers[questionIndex];
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+
+      const aMatch = line.match(answerRegex);
+      const oMatch = line.match(optionRegex);
+      const qMatch = (!oMatch && line) ? line.match(questionRegex) : null;
+
+      if (qMatch && !currentQuestion) {
+        currentQuestion = qMatch[1].trim();
+        currentOptions = [];
+        correctAnswer = null;
+      } else if (qMatch && currentQuestion) {
+        if (currentOptions.length >= 2) {
+          this.bulkPreview.push({
+            title: currentQuestion,
+            options: currentOptions.slice(0, 4),
+            correctAnswer: correctAnswer || '',
+            subject: this.form.value.subject || '',
+            missingAnswer: !correctAnswer
+          });
         }
-        this.bulkPreview.push({
-          title: currentQuestion,
-          options: currentOptions.slice(0, 4),
-          correctAnswer: correctAnswer || '',
-          subject: this.form.value.subject || ''
-        });
-        questionIndex++;
+        currentQuestion = qMatch[1].trim();
+        currentOptions = [];
+        correctAnswer = null;
+      } else if (aMatch) {
+        correctAnswer = aMatch[1].trim();
+      } else if (oMatch) {
+        const optText = oMatch[2].trim();
+        if (optText) currentOptions.push(optText);
+      } else {
+        currentOptions.push(line);
       }
-      currentQuestion = qMatch[1].trim();
-      currentOptions = [];
-      correctAnswer = null;
-    } else if (aMatch) {
-      correctAnswer = aMatch[1].trim();
-    } else if (oMatch && oMatch[2].trim()) {
-      currentOptions.push(oMatch[2].trim());
+    }
+
+    if (currentQuestion && currentOptions.length >= 2) {
+      this.bulkPreview.push({
+        title: currentQuestion,
+        options: currentOptions.slice(0, 4),
+        correctAnswer: correctAnswer || '',
+        subject: this.form.value.subject || '',
+        missingAnswer: !correctAnswer
+      });
+    }
+
+    if (this.bulkPreview.length === 0) {
+      this.parsingError = 'No valid question blocks found. Ensure each question has at least 2 options and optionally an Answer line.';
     } else {
-      currentOptions.push(line);
+      this.showBulkPreview = true;
     }
   }
-
-  // push last question
-  if (currentQuestion && currentOptions.length >= 2) {
-    if (!correctAnswer && fallbackAnswers[questionIndex]) {
-      correctAnswer = fallbackAnswers[questionIndex];
-    }
-    this.bulkPreview.push({
-      title: currentQuestion,
-      options: currentOptions.slice(0, 4),
-      correctAnswer: correctAnswer || '',
-      subject: this.form.value.subject || ''
-    });
-  }
-
-  if (this.bulkPreview.length === 0) {
-    this.parsingError =
-      'No valid question blocks found. Ensure each question has at least 2 options and optionally an Answer line.';
-  } else {
-    this.showBulkPreview = true;
-  }
-}
-
-
 
   removeBulkQuestion(i: number) {
     this.bulkPreview.splice(i, 1);
@@ -173,62 +179,79 @@ export class PopularQuizSetFormComponent implements AfterViewInit {
     this.showBulkPreview = false;
   }
 
- async saveFormQuiz() {
-  if (this.form.invalid || this.questions.length === 0) return;
-  this.saving = true;
-  this.msg = '';
-  const raw = this.form.value;
-
-  try {
-    const questionsPayload = this.questions.value.map((q: any) => ({
-      title: q.title!,
-      options: (q.options as string[]).filter(Boolean), // dynamic 2–4 options
-      correctAnswer: q.correctAnswer?.trim() || '' // optional correct answer
-    }));
-
-    await this.svc.addPopularQuizSet({
-      title: raw.title!,
-      questions: questionsPayload,
-      subject: raw.subject!
+  mapFallbackAnswers(): void {
+    if (!this.fallbackAnswersText.trim()) return;
+    const answers = this.fallbackAnswersText.split(/\r?\n/).map(a => a.trim());
+    let idx = 0;
+    this.bulkPreview.forEach(q => {
+      if (q.missingAnswer && answers[idx]) {
+        q.correctAnswer = answers[idx];
+        q.missingAnswer = false;
+        idx++;
+      }
     });
-
-    this.msg = 'Saved!';
-    this.form.reset();
-    this.clearQuestions();
-  } catch (e: any) {
-    this.msg = e?.message || 'Error';
-  } finally {
-    this.saving = false;
+    this.fallbackAnswersText = '';
+    this.bulkPreview = [...this.bulkPreview];
   }
-}
 
+  async saveFormQuiz() {
+    if (this.form.invalid || this.questions.length === 0) return;
+    this.saving = true;
+    this.msg = '';
+    const raw = this.form.value;
 
-   async saveBulkQuiz() {
-  if (!this.bulkPreview.length) return;
-  this.saving = true;
-  this.msg = '';
+    try {
+      const questionsPayload = this.questions.value.map((q: any) => ({
+        title: q.title!,
+        options: (q.options as string[]).filter(Boolean),
+        correctAnswer: q.correctAnswer?.trim() || ''
+      }));
 
-  try {
-    const setData: PopularQuizSet = {
-      title: this.form.value.title?.trim() || 'Bulk Quiz',
-      subject: this.form.value.subject?.trim() || 'General',
-      questions: this.bulkPreview.map((q: any) => ({
-        title: q.title,
-        options: (q.options as string[]).filter(Boolean), // dynamic 2–4 options
-        correctAnswer: q.correctAnswer?.trim() || '' // optional correct answer
-      }))
-    };
+      await this.svc.addPopularQuizSet({
+        title: raw.title!,
+        questions: questionsPayload,
+        subject: raw.subject!
+      });
 
-    await this.svc.addPopularQuizSet(setData);
-
-    this.msg = 'Bulk Quiz Set Saved!';
-    this.bulkText = '';
-    this.clearBulkPreview();
-  } catch (e: any) {
-    this.msg = e?.message || 'Error';
-  } finally {
-    this.saving = false;
+      this.msg = 'Saved!';
+      this.form.reset();
+      this.clearQuestions();
+    } catch (e: any) {
+      this.msg = e?.message || 'Error';
+    } finally {
+      this.saving = false;
+    }
   }
-}
 
+  async saveBulkQuiz() {
+    if (!this.bulkPreview.length) return;
+    if (this.hasMissingAnswers) {
+      alert('Please provide all missing correct answers before saving.');
+      return;
+    }
+    this.saving = true;
+    this.msg = '';
+
+    try {
+      const setData: PopularQuizSet = {
+        title: this.form.value.title?.trim() || 'Bulk Quiz',
+        subject: this.form.value.subject?.trim() || 'General',
+        questions: this.bulkPreview.map(q => ({
+          title: q.title,
+          options: q.options.filter(Boolean),
+          correctAnswer: q.correctAnswer.trim()
+        }))
+      };
+
+      await this.svc.addPopularQuizSet(setData);
+
+      this.msg = 'Bulk Quiz Set Saved!';
+      this.bulkText = '';
+      this.clearBulkPreview();
+    } catch (e: any) {
+      this.msg = e?.message || 'Error';
+    } finally {
+      this.saving = false;
+    }
+  }
 }

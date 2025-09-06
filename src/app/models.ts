@@ -22,3 +22,14 @@ export interface PopularQuizSet {
   }[];
 }
 
+export interface PopularQuizQuestion {
+  title: string;
+  options: string[];
+  correctAnswer: string;
+  subject?: string; // optional because subject comes from set
+}
+
+export interface BulkPreviewPopularQuiz extends PopularQuizQuestion {
+  missingAnswer: boolean;
+}
+

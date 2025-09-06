@@ -26,14 +26,7 @@ export class QuizService {
     return set(newRef, setData);
   }
 
-  addMultiplePopularQuizSets(sets: PopularQuizSet[]) {
-  const listRef = ref(this.db, 'popularQuiz');
-  const promises = sets.map(setData => {
-    const newRef = push(listRef);
-    return set(newRef, setData);
-  });
-  return Promise.all(promises);
-}
+  
 
  
 addEbook(ebook: { title: string; subject: string; url: string }) {
