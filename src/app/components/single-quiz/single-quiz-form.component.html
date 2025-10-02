@@ -1,15 +1,18 @@
+<!-- src/app/components/single-quiz/single-quiz-form.component.html -->
 <div class="form-container">
   <mat-tab-group>
-
-    <!-- Tab 1: Single Quiz Form -->
-    <mat-tab label="Form Upload">
+    <!-- ===================== Single Quiz Tab ===================== -->
+    <mat-tab label="Single Quiz">
       <mat-card>
         <form [formGroup]="quizForm" (ngSubmit)="addQuiz()">
+
+          <!-- Question -->
           <mat-form-field class="full-width" appearance="outline">
             <mat-label>Question</mat-label>
             <input matInput formControlName="question" placeholder="Enter question" />
           </mat-form-field>
 
+          <!-- Options -->
           <div formArrayName="options">
             <div *ngFor="let opt of options.controls; let i = index">
               <mat-form-field class="full-width" appearance="outline">
@@ -19,16 +22,108 @@
             </div>
           </div>
 
+          <!-- Correct Answer -->
           <mat-form-field class="full-width" appearance="outline">
             <mat-label>Correct Answer</mat-label>
             <input matInput formControlName="correctAnswer" placeholder="Enter correct answer" />
           </mat-form-field>
 
+          <!-- Subject -->
           <mat-form-field class="full-width" appearance="outline">
             <mat-label>Subject</mat-label>
             <mat-select formControlName="subject">
               <mat-option *ngFor="let s of subjects" [value]="s">{{ s }}</mat-option>
             </mat-select>
+          </mat-form-field>
+
+          <!-- Sub Categories -->
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Sub Categories</mat-label>
+            <mat-chip-grid #subGrid>
+              <mat-chip-row *ngFor="let sub of subCategories" (removed)="removeSubCategory(sub)">
+                {{ sub }}
+                <button matChipRemove>
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip-row>
+              <input
+                #subInput
+                matInput
+                [formControl]="subCtrl"
+                [matChipInputFor]="subGrid"
+                [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                (matChipInputTokenEnd)="addSubCategory($event)"
+                [matAutocomplete]="autoSub"
+                placeholder="Add or select subcategory" />
+            </mat-chip-grid>
+            <mat-autocomplete #autoSub="matAutocomplete" (optionSelected)="selectSubCategory($event)">
+              <mat-option *ngFor="let option of filteredSubCategories | async" [value]="option">
+                {{ option }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <!-- Exam Tags -->
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Exam Tags</mat-label>
+            <mat-chip-grid #tagGrid>
+              <mat-chip-row *ngFor="let tag of examTags" (removed)="removeExamTag(tag)">
+                {{ tag }}
+                <button matChipRemove>
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip-row>
+              <input
+                #tagInput
+                matInput
+                [formControl]="tagCtrl"
+                [matChipInputFor]="tagGrid"
+                [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                (matChipInputTokenEnd)="addExamTag($event)"
+                [matAutocomplete]="autoTag"
+                placeholder="Add or select tag" />
+            </mat-chip-grid>
+            <mat-autocomplete #autoTag="matAutocomplete" (optionSelected)="selectExamTag($event)">
+              <mat-option *ngFor="let option of filteredExamTags | async" [value]="option">
+                {{ option }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <!-- Level -->
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Level</mat-label>
+            <mat-select [formControl]="levelCtrl">
+              <mat-option value="Easy">Easy</mat-option>
+              <mat-option value="Medium">Medium</mat-option>
+              <mat-option value="Hard">Hard</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Classes -->
+          <mat-form-field class="full-width" appearance="outline">
+            <mat-label>Classes</mat-label>
+            <mat-chip-grid #classGrid>
+              <mat-chip-row *ngFor="let cls of classTags" (removed)="removeClassTag(cls)">
+                {{ cls }}
+                <button matChipRemove>
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip-row>
+              <input
+                matInput
+                [formControl]="classCtrl"
+                [matChipInputFor]="classGrid"
+                [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                (matChipInputTokenEnd)="addClassTag($event)"
+                [matAutocomplete]="autoClass"
+                placeholder="Add or select class" />
+            </mat-chip-grid>
+            <mat-autocomplete #autoClass="matAutocomplete" (optionSelected)="selectClassTag($event)">
+              <mat-option *ngFor="let option of filteredClasses | async" [value]="option">
+                {{ option }}
+              </mat-option>
+            </mat-autocomplete>
           </mat-form-field>
 
           <div class="actions-row">
@@ -38,60 +133,122 @@
       </mat-card>
     </mat-tab>
 
-    <!-- Tab 2: Bulk Upload -->
+    <!-- ===================== Bulk Upload Tab ===================== -->
     <mat-tab label="Bulk Upload">
       <mat-card>
-        <mat-form-field class="full-width" appearance="outline">
-          <mat-label>Paste bulk questions</mat-label>
-          <textarea matInput rows="10" [(ngModel)]="bulkText" name="bulkTextArea"></textarea>
-        </mat-form-field>
+        <h3>Paste Bulk Questions</h3>
 
+        <!-- Subject -->
         <mat-form-field class="full-width" appearance="outline">
-          <mat-label>Subject (applies to all)</mat-label>
-          <mat-select [(ngModel)]="bulkSubject" name="bulkSubject">
+          <mat-label>Subject</mat-label>
+          <mat-select [formControl]="bulkSubject">
             <mat-option *ngFor="let s of subjects" [value]="s">{{ s }}</mat-option>
           </mat-select>
         </mat-form-field>
 
+        <!-- Sub Categories -->
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Sub Categories</mat-label>
+          <mat-chip-grid #bulkSubGrid>
+            <mat-chip-row *ngFor="let sub of bulkSubCategories" (removed)="removeBulkSubCategory(sub)">
+              {{ sub }}
+              <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              matInput
+              [formControl]="bulkSubCtrl"
+              [matChipInputFor]="bulkSubGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+              (matChipInputTokenEnd)="addBulkSubCategory($event)"
+              [matAutocomplete]="autoBulkSub"
+              placeholder="Add or select subcategory" />
+          </mat-chip-grid>
+          <mat-autocomplete #autoBulkSub="matAutocomplete" (optionSelected)="selectBulkSubCategory($event)">
+            <mat-option *ngFor="let option of filteredBulkSubCategories | async" [value]="option">
+              {{ option }}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <!-- Exam Tags -->
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Exam Tags</mat-label>
+          <mat-chip-grid #bulkTagGrid>
+            <mat-chip-row *ngFor="let tag of bulkExamTags" (removed)="removeBulkExamTag(tag)">
+              {{ tag }}
+              <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              matInput
+              [formControl]="bulkTagCtrl"
+              [matChipInputFor]="bulkTagGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+              (matChipInputTokenEnd)="addBulkExamTag($event)"
+              [matAutocomplete]="autoBulkTag"
+              placeholder="Add or select tag" />
+          </mat-chip-grid>
+          <mat-autocomplete #autoBulkTag="matAutocomplete" (optionSelected)="selectBulkExamTag($event)">
+            <mat-option *ngFor="let option of filteredBulkExamTags | async" [value]="option">
+              {{ option }}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <!-- Level -->
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Level</mat-label>
+          <mat-select [formControl]="bulkLevelCtrl">
+            <mat-option value="Easy">Easy</mat-option>
+            <mat-option value="Medium">Medium</mat-option>
+            <mat-option value="Hard">Hard</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Classes -->
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Classes</mat-label>
+          <mat-chip-grid #bulkClassGrid>
+            <mat-chip-row *ngFor="let cls of bulkClasses" (removed)="removeBulkClass(cls)">
+              {{ cls }}
+              <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              matInput
+              [formControl]="bulkClassCtrl"
+              [matChipInputFor]="bulkClassGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+              (matChipInputTokenEnd)="addBulkClass($event)"
+              [matAutocomplete]="autoBulkClass"
+              placeholder="Add or select class" />
+          </mat-chip-grid>
+          <mat-autocomplete #autoBulkClass="matAutocomplete" (optionSelected)="selectBulkClass($event)">
+            <mat-option *ngFor="let option of filteredBulkClasses | async" [value]="option">
+              {{ option }}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <!-- Bulk Textarea -->
+        <mat-form-field class="full-width" appearance="outline">
+          <mat-label>Bulk Questions</mat-label>
+          <textarea
+            matInput
+            [formControl]="bulkCtrl"
+            rows="15"
+            placeholder="Paste questions in format:&#10;Question?&#10;A) ...&#10;B) ...&#10;C) ...&#10;D) ...&#10;Answer: ..." >
+          </textarea>
+        </mat-form-field>
+
         <div class="actions-row">
-          <button mat-stroked-button color="accent" (click)="parseBulkText()">Preview</button>
-          <button mat-stroked-button color="warn" (click)="clearAllPreview()">Clear All</button>
+          <button mat-raised-button color="primary" (click)="parseAndUploadBulk()">Upload Bulk</button>
         </div>
-
-        <div *ngIf="parsingError" class="error-msg">{{ parsingError }}</div>
       </mat-card>
-
-      <!-- Missing Answer Mapping -->
-      <mat-card *ngIf="bulkPreview.length && hasMissingAnswers">
-        <mat-card-title>Provide missing answers</mat-card-title>
-        <p>Enter one answer per line, order matches missing questions:</p>
-        <textarea matInput rows="3" [(ngModel)]="fallbackAnswersText"></textarea>
-        <button mat-raised-button color="primary" (click)="mapFallbackAnswers()">Map Answers</button>
-      </mat-card>
-
-      <!-- Bulk Preview -->
-      <div *ngIf="bulkPreview.length" class="preview-grid">
-        <mat-card *ngFor="let q of bulkPreview; let i = index" class="preview-card">
-          <mat-card-header>
-            <mat-card-title>{{ q.title }}</mat-card-title>
-            <button mat-icon-button color="warn" (click)="deletePreview(i)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </mat-card-header>
-          <mat-card-content>
-            <ol type="a">
-              <li *ngFor="let opt of q.options">{{ opt }}</li>
-            </ol>
-            <p><strong>Correct Answer:</strong> {{ q.correctAnswer || '❌ Missing' }}</p>
-            <p><strong>Subject:</strong> {{ bulkSubject || q.subject || '—' }}</p>
-          </mat-card-content>
-        </mat-card>
-      </div>
-
-      <div *ngIf="bulkPreview.length" class="actions-row">
-        <button mat-raised-button color="primary" (click)="uploadBulk()">Upload All ({{ bulkPreview.length }})</button>
-        <button mat-stroked-button color="warn" (click)="clearAllPreview()">Delete All</button>
-      </div>
     </mat-tab>
   </mat-tab-group>
 </div>

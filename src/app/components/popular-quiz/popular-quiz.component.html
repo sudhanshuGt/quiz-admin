@@ -1,0 +1,53 @@
+<mat-card>
+  <h3>Create Popular Quiz Set from Question IDs</h3>
+
+  <!-- Quiz Title -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Quiz Title</mat-label>
+    <input matInput [formControl]="quizTitle" placeholder="Enter quiz title" />
+  </mat-form-field>
+
+  <!-- Question IDs -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Question IDs (one per line or comma separated)</mat-label>
+    <textarea matInput [formControl]="questionIdsInput" rows="5" placeholder="Paste question IDs here"></textarea>
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" (click)="fetchQuestionsByIds()">Fetch Questions</button>
+
+  <!-- Selected Count & Select/Deselect All -->
+  <div class="selection-actions" *ngIf="questions.length && !loadingQuestions">
+    <span>Selected {{ selectedQuestions.size }} / {{ questions.length }}</span>
+    <button mat-button color="primary" (click)="selectAllQuestions()">Select All</button>
+    <button mat-button color="warn" (click)="deselectAllQuestions()">Deselect All</button>
+  </div>
+
+  <!-- Questions List -->
+  <div *ngIf="loadingQuestions">Loading questions...</div>
+
+  <div class="question-list" *ngIf="questions.length && !loadingQuestions">
+    <mat-card *ngFor="let q of questions" class="question-card">
+      <mat-checkbox [checked]="isSelected(q.id!)" (change)="toggleQuestionSelection(q.id!)">
+        {{ q.title }}
+      </mat-checkbox>
+      <ul>
+        <li *ngFor="let opt of q.options">
+          {{ opt }}
+          <mat-icon *ngIf="opt === q.correctAnswer" color="primary">check_circle</mat-icon>
+        </li>
+      </ul>
+    </mat-card>
+  </div>
+
+  <div *ngIf="questions.length === 0 && !loadingQuestions && questionIdsInput.value">
+    No questions found for the provided IDs.
+  </div>
+
+  <div class="actions-row">
+    <button mat-raised-button color="primary"
+      (click)="savePopularQuiz()"
+      [disabled]="!quizTitle.value || selectedQuestions.size === 0">
+      Save Popular Quiz
+    </button>
+  </div>
+</mat-card>

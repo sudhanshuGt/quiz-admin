@@ -1,35 +1,33 @@
 // models.ts
-export interface SingleQuiz {
+
+export interface Question {
+  id?: string;             // Firebase key
   title: string;
   options: string[];
-  correctAnswer: string;   // store the option text
-  subject?: string;
-}
+  correctAnswer: string;
+  subject: string;
+  subCategories: string[]; // required for quiz
+  examTags: string[];      // required for quiz
+  level?: string;          
+  classTags?: string[];     
 
-export interface BulkPreviewQuiz extends SingleQuiz {
-  missingAnswer: boolean;
 }
 
 
 export interface PopularQuizSet {
+  id?: string;
   title: string;
   subject?: string;
   ratings?: string[];
-  questions: {
-    title: string;
-    options: string[];
-    correctAnswer: string;
-  }[];
+  subCategories?: string[];
+  examTags?: string[];
+  questionIds: string[];
+  likes : string;
 }
 
-export interface PopularQuizQuestion {
+export interface Ebook {
+  id?: string;
   title: string;
-  options: string[];
-  correctAnswer: string;
-  subject?: string; // optional because subject comes from set
+  subject: string;
+  url: string;
 }
-
-export interface BulkPreviewPopularQuiz extends PopularQuizQuestion {
-  missingAnswer: boolean;
-}
-

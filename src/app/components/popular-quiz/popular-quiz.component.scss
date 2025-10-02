@@ -1,0 +1,22 @@
+.full-width {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.question-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.question-card {
+  margin-bottom: 8px;
+  padding: 12px;
+}
