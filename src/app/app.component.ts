@@ -15,7 +15,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
         <a routerLink="/popular-quiz" routerLinkActive="active" (click)="closeMenu()">Popular Quiz Set</a>
         <a routerLink="/subjects" routerLinkActive="active" (click)="closeMenu()">Subjects</a>
         <a routerLink="/ebooks" routerLinkActive="active" (click)="closeMenu()">E-Books</a>
-
+        <a routerLink="/exam" routerLinkActive="active" (click)="closeMenu()">Create Exam Content</a>
       </nav>
     </header>
 

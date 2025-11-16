@@ -11,6 +11,12 @@ export interface Question {
   level?: string;          
   classTags?: string[];     
 
+  examId?: string;
+  examName?: string;
+  syllabusId?: string;
+  syllabusName?: string;
+  chapterId?: string;
+  chapterName?: string;
 }
 
 
