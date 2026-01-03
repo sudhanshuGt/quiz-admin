@@ -1,13 +1,23 @@
 <div class="container">
+  <div class="page-header">
+    <h1>Quiz Administration</h1>
+    <p class="subtitle">Manage your exams, syllabi, chapters, and questions</p>
+  </div>
 
   <!-- EXAM -->
-  <mat-card class="section">
-    <mat-card-title>Exam</mat-card-title>
+  <mat-card class="section exam-section">
+    <mat-card-header class="section-header">
+      <div class="section-title-wrapper">
+        <span class="section-icon">📋</span>
+        <h2>Exam Management</h2>
+      </div>
+    </mat-card-header>
     <mat-card-content>
-      <form [formGroup]="examForm" (ngSubmit)="createExam()">
-        <div class="row">
-          <mat-form-field appearance="outline" class="flex">
-            <mat-label>Select Exam</mat-label>
+      <form [formGroup]="examForm" (ngSubmit)="createExam()" class="form-section">
+        <div class="form-group">
+          <label class="section-subtitle">Select Existing Exam</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Choose an exam</mat-label>
             <mat-select (selectionChange)="onSelectExam($event.value)">
               <mat-option [value]="null">-- none --</mat-option>
               <mat-option *ngFor="let e of exams" [value]="e.id">{{ e.name }}</mat-option>
@@ -15,36 +25,46 @@
           </mat-form-field>
         </div>
 
-        <div class="or-text">OR add new exam</div>
+        <div class="divider-text">OR</div>
 
-        <div class="row">
-          <mat-form-field appearance="outline" class="flex">
-            <mat-label>New Exam Name</mat-label>
-            <input matInput formControlName="name" placeholder="Exam name" />
-            <mat-error *ngIf="examForm.get('name')?.hasError('required')">Name required</mat-error>
+        <div class="form-group">
+          <label class="section-subtitle">Create New Exam</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Exam Name</mat-label>
+            <input matInput formControlName="name" placeholder="e.g., IIT JEE Main 2024" />
+            <mat-error *ngIf="examForm.get('name')?.hasError('required')">Exam name is required</mat-error>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="flex">
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Exam Image URL (optional)</mat-label>
-            <input matInput formControlName="imageUrl" placeholder="https://..." />
+            <input matInput formControlName="imageUrl" placeholder="https://example.com/image.jpg" />
           </mat-form-field>
         </div>
 
-        <div class="row actions">
-          <button mat-raised-button color="primary" type="submit">Create Exam</button>
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" type="submit" class="create-btn">
+            <span>+ Create Exam</span>
+          </button>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
   <!-- SYLLABUS -->
-  <mat-card class="section">
-    <mat-card-title>Syllabus</mat-card-title>
+  <mat-card class="section syllabus-section" [class.disabled]="!selectedExamId">
+    <mat-card-header class="section-header">
+      <div class="section-title-wrapper">
+        <span class="section-icon">📚</span>
+        <h2>Syllabus Management</h2>
+      </div>
+      <span class="status-badge" *ngIf="!selectedExamId">Select an exam first</span>
+    </mat-card-header>
     <mat-card-content>
-      <form [formGroup]="syllabusForm" (ngSubmit)="createSyllabus()">
-        <div class="row">
-          <mat-form-field appearance="outline" class="flex">
-            <mat-label>Select Syllabus</mat-label>
+      <form [formGroup]="syllabusForm" (ngSubmit)="createSyllabus()" class="form-section">
+        <div class="form-group">
+          <label class="section-subtitle">Select Existing Syllabus</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Choose a syllabus</mat-label>
             <mat-select (selectionChange)="onSelectSyllabus($event.value)" [disabled]="!selectedExamId">
               <mat-option [value]="null">-- none --</mat-option>
               <mat-option *ngFor="let s of syllabusList" [value]="s.id">{{ s.name }}</mat-option>
@@ -52,36 +72,46 @@
           </mat-form-field>
         </div>
 
-        <div class="or-text">OR add new syllabus</div>
+        <div class="divider-text">OR</div>
 
-        <div class="row">
-          <mat-form-field appearance="outline" class="flex">
-            <mat-label>New Syllabus Name</mat-label>
-            <input matInput formControlName="name" [disabled]="!selectedExamId" />
-            <mat-error *ngIf="syllabusForm.get('name')?.hasError('required')">Name required</mat-error>
+        <div class="form-group">
+          <label class="section-subtitle">Create New Syllabus</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Syllabus Name</mat-label>
+            <input matInput formControlName="name" [disabled]="!selectedExamId" placeholder="e.g., Physics" />
+            <mat-error *ngIf="syllabusForm.get('name')?.hasError('required')">Syllabus name is required</mat-error>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="flex">
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Syllabus Image URL (optional)</mat-label>
-            <input matInput formControlName="imageUrl" [disabled]="!selectedExamId" />
+            <input matInput formControlName="imageUrl" [disabled]="!selectedExamId" placeholder="https://example.com/image.jpg" />
           </mat-form-field>
         </div>
 
-        <div class="row actions">
-          <button mat-raised-button color="primary" type="submit" [disabled]="!selectedExamId">Create Syllabus</button>
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" type="submit" [disabled]="!selectedExamId" class="create-btn">
+            <span>+ Create Syllabus</span>
+          </button>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
   <!-- CHAPTER -->
-  <mat-card class="section">
-    <mat-card-title>Chapter</mat-card-title>
+  <mat-card class="section chapter-section" [class.disabled]="!selectedSyllabusId">
+    <mat-card-header class="section-header">
+      <div class="section-title-wrapper">
+        <span class="section-icon">📖</span>
+        <h2>Chapter Management</h2>
+      </div>
+      <span class="status-badge" *ngIf="!selectedSyllabusId">Select a syllabus first</span>
+    </mat-card-header>
     <mat-card-content>
-      <form [formGroup]="chapterForm" (ngSubmit)="createChapter()">
-        <div class="row">
-          <mat-form-field appearance="outline" class="flex">
-            <mat-label>Select Chapter</mat-label>
+      <form [formGroup]="chapterForm" (ngSubmit)="createChapter()" class="form-section">
+        <div class="form-group">
+          <label class="section-subtitle">Select Existing Chapter</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Choose a chapter</mat-label>
             <mat-select (selectionChange)="onSelectChapter($event.value)" [disabled]="!selectedSyllabusId">
               <mat-option [value]="null">-- none --</mat-option>
               <mat-option *ngFor="let c of chapterList" [value]="c.id">{{ c.name }}</mat-option>
@@ -89,92 +119,127 @@
           </mat-form-field>
         </div>
 
-        <div class="or-text">OR add new chapter</div>
+        <div class="divider-text">OR</div>
 
-        <div class="row">
-          <mat-form-field appearance="outline" class="flex">
-            <mat-label>New Chapter Name</mat-label>
-            <input matInput formControlName="name" [disabled]="!selectedSyllabusId" />
-            <mat-error *ngIf="chapterForm.get('name')?.hasError('required')">Name required</mat-error>
+        <div class="form-group">
+          <label class="section-subtitle">Create New Chapter</label>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Chapter Name</mat-label>
+            <input matInput formControlName="name" [disabled]="!selectedSyllabusId" placeholder="e.g., Mechanics" />
+            <mat-error *ngIf="chapterForm.get('name')?.hasError('required')">Chapter name is required</mat-error>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="flex">
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Chapter Image URL (optional)</mat-label>
-            <input matInput formControlName="imageUrl" [disabled]="!selectedSyllabusId" />
+            <input matInput formControlName="imageUrl" [disabled]="!selectedSyllabusId" placeholder="https://example.com/image.jpg" />
           </mat-form-field>
         </div>
 
-        <div class="row actions">
-          <button mat-raised-button color="primary" type="submit" [disabled]="!selectedSyllabusId">Create Chapter</button>
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" type="submit" [disabled]="!selectedSyllabusId" class="create-btn">
+            <span>+ Create Chapter</span>
+          </button>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
   <!-- SINGLE QUESTION -->
-  <mat-card class="section">
-    <mat-card-title>Add Question (Single)</mat-card-title>
+  <mat-card class="section question-section">
+    <mat-card-header class="section-header">
+      <div class="section-title-wrapper">
+        <span class="section-icon">❓</span>
+        <h2>Add Single Question</h2>
+      </div>
+    </mat-card-header>
     <mat-card-content>
-      <form [formGroup]="questionForm" (ngSubmit)="saveSingleQuestion()">
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Question</mat-label>
-          <textarea matInput formControlName="title" rows="3"></textarea>
-        </mat-form-field>
+      <form [formGroup]="questionForm" (ngSubmit)="saveSingleQuestion()" class="form-section">
+        <div class="form-group">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Question Text</mat-label>
+            <textarea matInput formControlName="title" rows="4" placeholder="Enter the question here..."></textarea>
+          </mat-form-field>
+        </div>
 
-        <div formArrayName="options">
-          <div *ngFor="let ctrl of options.controls; let i = index">
-            <mat-form-field appearance="outline" class="full">
-              <mat-label>Option {{ i + 1 }}</mat-label>
-              <input matInput [formControlName]="i" />
-            </mat-form-field>
+        <div class="form-group">
+          <label class="section-subtitle">Answer Options</label>
+          <div formArrayName="options" class="options-container">
+            <div *ngFor="let ctrl of options.controls; let i = index" class="option-field">
+              <span class="option-label">{{ ['A', 'B', 'C', 'D'][i] }}</span>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Option {{ i + 1 }}</mat-label>
+                <input matInput [formControlName]="i" placeholder="Enter option text" />
+              </mat-form-field>
+            </div>
           </div>
         </div>
 
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Correct Answer (enter exact option text or A/B/C/D)</mat-label>
-          <input matInput formControlName="correctAnswer" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Image URL (optional)</mat-label>
-          <input matInput formControlName="imageUrl" />
-        </mat-form-field>
-
-        <div class="hint">
-          Selected: <strong>{{selectedExamName}}</strong> /
-          <strong>se</strong> /
-          <strong>{{ selectedSyllabusName }}</strong>
+        <div class="form-group">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Correct Answer</mat-label>
+            <input matInput formControlName="correctAnswer" placeholder="A, B, C, or D" />
+            <mat-hint>Enter the letter (A/B/C/D) or exact option text</mat-hint>
+          </mat-form-field>
         </div>
 
-        <div class="row actions">
-          <button mat-raised-button color="primary" type="submit">Save Question</button>
+        <div class="form-group">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Question Image URL (optional)</mat-label>
+            <input matInput formControlName="imageUrl" placeholder="https://example.com/image.jpg" />
+          </mat-form-field>
+        </div>
+
+        <div class="breadcrumb-hint">
+          <span class="breadcrumb-label">Context:</span>
+          <div class="breadcrumb-path">
+            <span>{{ selectedExamName || 'No exam selected' }}</span>
+            <span class="separator">/</span>
+            <span>{{ selectedSyllabusName || 'No syllabus selected' }}</span>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" type="submit" class="create-btn">
+            <span>✓ Save Question</span>
+          </button>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
   <!-- BULK QUESTIONS -->
-  <mat-card class="section">
-    <mat-card-title>Add Questions (Bulk paste)</mat-card-title>
+  <mat-card class="section bulk-section">
+    <mat-card-header class="section-header">
+      <div class="section-title-wrapper">
+        <span class="section-icon">📤</span>
+        <h2>Bulk Import Questions</h2>
+      </div>
+    </mat-card-header>
     <mat-card-content>
-      <p>Paste blocks separated by an empty line. Format per block:</p>
-      <pre>
-Q title line
-A) optionA
-B) optionB
-C) optionC
-D) optionD
-Answer: B
-      </pre>
+      <div class="format-guide">
+        <h3>Format Instructions</h3>
+        <p>Separate each question block with an empty line. Use this format:</p>
+        <pre class="format-example">Question title here?
+A) First option
+B) Second option
+C) Third option
+D) Fourth option
+Answer: B</pre>
+      </div>
 
-      <form [formGroup]="bulkForm" (ngSubmit)="saveBulkQuestions()">
-        <mat-form-field appearance="outline" class="full">
-          <mat-label>Bulk questions</mat-label>
-          <textarea matInput formControlName="bulkText" rows="10" placeholder="Paste questions here"></textarea>
-        </mat-form-field>
+      <form [formGroup]="bulkForm" (ngSubmit)="saveBulkQuestions()" class="form-section">
+        <div class="form-group">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Paste Questions</mat-label>
+            <textarea matInput formControlName="bulkText" rows="12" placeholder="Paste multiple questions in the specified format..."></textarea>
+            <mat-hint>Each question should be separated by a blank line</mat-hint>
+          </mat-form-field>
+        </div>
 
-        <div class="row actions">
-          <button mat-raised-button color="primary" type="submit">Save Bulk Questions</button>
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" type="submit" class="create-btn">
+            <span>⬆ Import Questions</span>
+          </button>
         </div>
       </form>
     </mat-card-content>
