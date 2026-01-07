@@ -144,44 +144,92 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- SINGLE QUESTION -->
+  <!-- SINGLE QUESTION (MULTI-LANGUAGE) -->
   <mat-card class="section question-section">
     <mat-card-header class="section-header">
       <div class="section-title-wrapper">
         <span class="section-icon">❓</span>
-        <h2>Add Single Question</h2>
+        <h2>Add Question with Multi-Language Support</h2>
       </div>
     </mat-card-header>
     <mat-card-content>
+      <!-- Language Selector -->
+      <app-language-selector></app-language-selector>
+
       <form [formGroup]="questionForm" (ngSubmit)="saveSingleQuestion()" class="form-section">
-        <div class="form-group">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Question Text</mat-label>
-            <textarea matInput formControlName="title" rows="4" placeholder="Enter the question here..."></textarea>
-          </mat-form-field>
+        <!-- Language Tabs for Question Content -->
+        <div class="language-tabs-container">
+          <mat-tab-group class="language-tabs">
+            <mat-tab *ngFor="let lang of selectedLanguages" [label]="languageService.getLanguageFlag(lang) + ' ' + languageService.getLanguageName(lang)">
+              
+              <ng-template mat-tab-label>
+                <span class="tab-content">
+                  {{ languageService.getLanguageFlag(lang) }}
+                  <span class="lang-label">{{ languageService.getLanguageName(lang) }}</span>
+                </span>
+              </ng-template>
+
+              <!-- Question Title for this language -->
+              <div class="tab-content-area">
+                <div class="form-group">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Question in {{ languageService.getLanguageName(lang) }}</mat-label>
+                    <textarea 
+                      matInput 
+                      [formControlName]="lang" 
+                      formGroupName="titles"
+                      rows="4" 
+                      placeholder="Enter the question in {{ languageService.getLanguageName(lang) }}...">
+                    </textarea>
+                    <mat-error *ngIf="getTitleForLanguage(lang)?.hasError('required')">
+                      Question text is required in {{ languageService.getLanguageName(lang) }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+
+                <!-- Answer Options for this language -->
+                <div class="form-group">
+                  <label class="section-subtitle">Answer Options ({{ languageService.getLanguageName(lang) }})</label>
+                  <div [formGroupName]="'optionsByLanguage'" class="options-container">
+                    <div [formArrayName]="lang">
+                      <div *ngFor="let ctrl of getOptionsForLanguage(lang).controls; let i = index" class="option-field">
+                        <span class="option-label">{{ ['A', 'B', 'C', 'D'][i] }}</span>
+                        <mat-form-field appearance="outline" class="full-width">
+                          <mat-label>Option {{ i + 1 }}</mat-label>
+                            <input 
+                            matInput 
+                            [formControlName]="i" 
+                            placeholder="Enter option {{ i + 1 }} in {{ languageService.getLanguageName(lang) }}" />
+                          <mat-error *ngIf="getOptionsForLanguage(lang).at(i).hasError('required')">
+                            Option is required
+                          </mat-error>
+                        </mat-form-field>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Correct Answer for this language -->
+                <div class="form-group">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Correct Answer ({{ languageService.getLanguageName(lang) }})</mat-label>
+                    <input 
+                      matInput 
+                      [formControlName]="lang"
+                      formGroupName="correctAnswers"
+                      placeholder="A, B, C, or D" />
+                    <mat-hint>Enter the letter (A/B/C/D) or exact option text</mat-hint>
+                    <mat-error *ngIf="getAnswerForLanguage(lang)?.hasError('required')">
+                      Correct answer is required in {{ languageService.getLanguageName(lang) }}
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
         </div>
 
-        <div class="form-group">
-          <label class="section-subtitle">Answer Options</label>
-          <div formArrayName="options" class="options-container">
-            <div *ngFor="let ctrl of options.controls; let i = index" class="option-field">
-              <span class="option-label">{{ ['A', 'B', 'C', 'D'][i] }}</span>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Option {{ i + 1 }}</mat-label>
-                <input matInput [formControlName]="i" placeholder="Enter option text" />
-              </mat-form-field>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Correct Answer</mat-label>
-            <input matInput formControlName="correctAnswer" placeholder="A, B, C, or D" />
-            <mat-hint>Enter the letter (A/B/C/D) or exact option text</mat-hint>
-          </mat-form-field>
-        </div>
-
+        <!-- Image URL (common for all languages) -->
         <div class="form-group">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Question Image URL (optional)</mat-label>
@@ -189,6 +237,7 @@
           </mat-form-field>
         </div>
 
+        <!-- Context Breadcrumb -->
         <div class="breadcrumb-hint">
           <span class="breadcrumb-label">Context:</span>
           <div class="breadcrumb-path">
@@ -198,41 +247,104 @@
           </div>
         </div>
 
+        <!-- Action Buttons -->
         <div class="action-buttons">
           <button mat-raised-button color="primary" type="submit" class="create-btn">
-            <span>✓ Save Question</span>
+            <span>✓ Save Multi-Language Question</span>
           </button>
+          <span class="language-count">{{ selectedLanguages.length }} language(s) selected</span>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
-  <!-- BULK QUESTIONS -->
+  <!-- BULK QUESTIONS (MULTI-LANGUAGE SUPPORT) -->
   <mat-card class="section bulk-section">
     <mat-card-header class="section-header">
       <div class="section-title-wrapper">
         <span class="section-icon">📤</span>
-        <h2>Bulk Import Questions</h2>
+        <h2>Bulk Import Questions (Single & Multi-Language)</h2>
       </div>
     </mat-card-header>
     <mat-card-content>
-      <div class="format-guide">
-        <h3>Format Instructions</h3>
-        <p>Separate each question block with an empty line. Use this format:</p>
-        <pre class="format-example">Question title here?
+      <!-- Format Tabs -->
+      <mat-tab-group class="format-tabs">
+        <!-- Format 1: Single Language (Legacy) -->
+        <mat-tab label="📋 Single Language Format">
+          <div class="tab-content">
+            <h3>Legacy Format (Auto-converts to selected languages)</h3>
+            <p>Use this format for single-language bulk import. Each question will be added in the currently selected languages.</p>
+            <pre class="format-example">Question title here?
 A) First option
 B) Second option
 C) Third option
 D) Fourth option
+Answer: B
+
+Next question?
+A) Option 1
+B) Option 2
+C) Option 3
+D) Option 4
+Answer: A</pre>
+          </div>
+        </mat-tab>
+
+        <!-- Format 2: Multi-Language -->
+        <mat-tab label="🌐 Multi-Language Format">
+          <div class="tab-content">
+            <h3>Advanced Format (Each question in multiple languages)</h3>
+            <p>Use language tags [LANG:xx] to define different versions of the same question. Separate questions with a blank line.</p>
+            <pre class="format-example">[LANG:en]
+What is the capital of India?
+A) New Delhi
+B) Mumbai
+C) Kolkata
+D) Bangalore
+Answer: A
+[LANG:hi]
+भारत की राजधानी क्या है?
+A) नई दिल्ली
+B) मुंबई
+C) कोलकाता
+D) बेंगलुरु
+Answer: A
+
+[LANG:en]
+What is 2+2?
+A) 3
+B) 4
+C) 5
+D) 6
+Answer: B
+[LANG:hi]
+2+2 क्या है?
+A) 3
+B) 4
+C) 5
+D) 6
 Answer: B</pre>
-      </div>
+            <p style="color: #666; font-size: 12px; margin-top: 12px;">
+              <strong>Supported language codes:</strong> en, hi, es, fr, de, zh, ar, pt
+            </p>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
 
       <form [formGroup]="bulkForm" (ngSubmit)="saveBulkQuestions()" class="form-section">
         <div class="form-group">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Paste Questions</mat-label>
-            <textarea matInput formControlName="bulkText" rows="12" placeholder="Paste multiple questions in the specified format..."></textarea>
-            <mat-hint>Each question should be separated by a blank line</mat-hint>
+            <mat-label>Paste Questions (Single or Multi-Language)</mat-label>
+            <textarea 
+              matInput 
+              formControlName="bulkText" 
+              rows="14" 
+              placeholder="Paste multiple questions in single-language or multi-language format (see tabs above)..."></textarea>
+            <mat-hint>
+              • Single-language: Separate questions with blank line
+              • Multi-language: Use [LANG:code] tags, separate questions with blank line
+              • Auto-detects format based on [LANG:] tags
+            </mat-hint>
           </mat-form-field>
         </div>
 
@@ -240,6 +352,9 @@ Answer: B</pre>
           <button mat-raised-button color="primary" type="submit" class="create-btn">
             <span>⬆ Import Questions</span>
           </button>
+          <span class="import-info" *ngIf="selectedLanguages.length > 1">
+            📍 {{ selectedLanguages.length }} languages selected (single-language format will use them)
+          </span>
         </div>
       </form>
     </mat-card-content>

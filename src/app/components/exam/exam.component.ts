@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule, NgModel, FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { QuizHierarchyService } from '../../quiz-hierarchy.service';
+import { LanguageService } from '../../services/language.service';
 import { Exam } from '../../exam.model';
 import { Syllabus } from '../../exam.model';
 import { Chapter } from '../../exam.model';
@@ -12,6 +13,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInput, MatInputModule } from '@angular/material/input';
 import { MatOption, MatSelectModule } from '@angular/material/select';
+import { LanguageSelectorComponent } from '../common/language-selector.component';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @Component({
   selector: 'app-exam-syllabus-chapter-question',
@@ -27,7 +30,9 @@ import { MatOption, MatSelectModule } from '@angular/material/select';
     MatCardModule,
     MatOption,
     MatInput,
-    FormsModule
+    FormsModule,
+    LanguageSelectorComponent,
+    MatTabsModule
   ]
 })
 export class ExamComponent implements OnInit, OnDestroy {
@@ -40,12 +45,13 @@ export class ExamComponent implements OnInit, OnDestroy {
   examsSub?: Subscription;
   syllabusSub?: Subscription;
   chaptersSub?: Subscription;
+  languageSub?: Subscription;
 
   // forms
   examForm!: FormGroup;      // create exam
   syllabusForm!: FormGroup;  // create syllabus
   chapterForm!: FormGroup;   // create chapter
-  questionForm!: FormGroup;  // single question
+  questionForm!: FormGroup;  // single question (multi-language)
   bulkForm!: FormGroup;      // bulk paste
 
   // selection ids
@@ -53,9 +59,30 @@ export class ExamComponent implements OnInit, OnDestroy {
   selectedSyllabusId: string | null = null;
   selectedChapterId: string | null = null;
 
-  constructor(private fb: FormBuilder, private svc: QuizHierarchyService) {}
+  // Multi-language support
+  selectedLanguages: string[] = ['en'];
+  currentLanguage: string = 'en';
+  allLanguages: any[] = [];
+
+  constructor(
+    private fb: FormBuilder, 
+    private svc: QuizHierarchyService,
+    public languageService: LanguageService
+  ) {}
 
   ngOnInit(): void {
+    // Initialize language service
+    this.allLanguages = this.languageService.getAvailableLanguages();
+    this.languageSub = this.languageService.selectedLanguages$.subscribe(langs => {
+      this.selectedLanguages = langs;
+      // Reinitialize multi-language question form with selected languages
+      this.initializeMultiLanguageQuestionForm();
+    });
+
+    this.languageService.currentLanguage$.subscribe(lang => {
+      this.currentLanguage = lang;
+    });
+
     // create reactive forms
     this.examForm = this.fb.group({
       name: ['', Validators.required],
@@ -72,17 +99,8 @@ export class ExamComponent implements OnInit, OnDestroy {
       imageUrl: ['']
     });
 
-    this.questionForm = this.fb.group({
-      title: ['', Validators.required],
-      options: this.fb.array([
-        this.fb.control('', Validators.required),
-        this.fb.control('', Validators.required),
-        this.fb.control('', Validators.required),
-        this.fb.control('', Validators.required)
-      ]),
-      correctAnswer: ['', Validators.required],
-      imageUrl: ['']
-    });
+    // Initialize multi-language question form
+    this.initializeMultiLanguageQuestionForm();
 
     this.bulkForm = this.fb.group({
       bulkText: ['']
@@ -96,10 +114,74 @@ export class ExamComponent implements OnInit, OnDestroy {
     // watch selection changes? We'll use select handlers from template.
   }
 
+  /**
+   * Initialize question form with multi-language support
+   */
+  private initializeMultiLanguageQuestionForm(): void {
+    // Create form with language-specific question, options, and answers
+    const langs = this.selectedLanguages;
+    
+    const titleGroup: any = {};
+    const optionsGroup: any = {};
+    const answersGroup: any = {};
+
+    langs.forEach(lang => {
+      titleGroup[lang] = ['', Validators.required];
+      answersGroup[lang] = ['', Validators.required];
+      // 4 options per language
+      optionsGroup[lang] = this.fb.array([
+        this.fb.control('', Validators.required),
+        this.fb.control('', Validators.required),
+        this.fb.control('', Validators.required),
+        this.fb.control('', Validators.required)
+      ]);
+    });
+
+    this.questionForm = this.fb.group({
+      titles: this.fb.group(titleGroup),
+      optionsByLanguage: this.fb.group(optionsGroup),
+      correctAnswers: this.fb.group(answersGroup),
+      imageUrl: ['']
+    });
+  }
+
+  /**
+   * Get form array for options of a specific language
+   */
+  getOptionsForLanguage(language: string): FormArray {
+    const optionsGroup = this.questionForm.get('optionsByLanguage') as FormGroup;
+    return optionsGroup.get(language) as FormArray;
+  }
+
+  /**
+   * Convert LocalizedContent or string to string for compatibility
+   */
+  private getNameAsString(value: any): string | undefined {
+    if (!value) return undefined;
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value['en']) return value['en'];
+    return undefined;
+  }
+
+  /**
+   * Get title control for a specific language
+   */
+  getTitleForLanguage(language: string) {
+    return (this.questionForm.get('titles') as FormGroup).get(language);
+  }
+
+  /**
+   * Get correct answer control for a specific language
+   */
+  getAnswerForLanguage(language: string) {
+    return (this.questionForm.get('correctAnswers') as FormGroup).get(language);
+  }
+
   ngOnDestroy(): void {
     this.examsSub?.unsubscribe();
     this.syllabusSub?.unsubscribe();
     this.chaptersSub?.unsubscribe();
+    this.languageSub?.unsubscribe();
   }
 
   // helpers for options array
@@ -187,55 +269,222 @@ export class ExamComponent implements OnInit, OnDestroy {
     this.selectedChapterId = chapterId;
   }
 
-  // ----------------- Single Question Save -----------------
+  // ----------------- Single Question Save (Multi-Language) -----------------
   async saveSingleQuestion() {
     if (this.questionForm.invalid) {
       this.questionForm.markAllAsTouched();
+      alert('Please fill in all required fields for all selected languages');
       return;
     }
+
     const v = this.questionForm.value;
+    
+    // Build multi-language title and options
+    const titles: { [key: string]: string } = {};
+    const optionsByLang: { [key: string]: string[] } = {};
+    const answers: { [key: string]: string } = {};
+
+    this.selectedLanguages.forEach(lang => {
+      titles[lang] = v.titles[lang]?.trim() || '';
+      optionsByLang[lang] = v.optionsByLanguage[lang] || ['', '', '', ''];
+      answers[lang] = v.correctAnswers[lang]?.trim() || '';
+    });
+
     const q: Question = {
-      title: v.title,
-      options: v.options,
-      correctAnswer: v.correctAnswer,
+      title: titles,
+      options: optionsByLang,
+      correctAnswer: answers,
       imageUrl: v.imageUrl || undefined,
+      languages: this.selectedLanguages,
       examId: this.selectedExamId || undefined,
-      examName: this.exams.find(e => e.id === this.selectedExamId)?.name,
+      examName: this.getNameAsString(this.exams.find(e => e.id === this.selectedExamId)?.name),
       syllabusId: this.selectedSyllabusId || undefined,
-      syllabusName: this.syllabusList.find(s => s.id === this.selectedSyllabusId)?.name,
+      syllabusName: this.getNameAsString(this.syllabusList.find(s => s.id === this.selectedSyllabusId)?.name),
       chapterId: this.selectedChapterId || undefined,
-      chapterName: this.chapterList.find(c => c.id === this.selectedChapterId)?.name
+      chapterName: this.getNameAsString(this.chapterList.find(c => c.id === this.selectedChapterId)?.name)
     };
 
-    // save top-level
-    await this.svc.createTopLevelQuestion(q);
+    try {
+      // save top-level
+      await this.svc.createTopLevelQuestion(q);
 
-    // also save under chapter (if selected)
-    if (this.selectedExamId && this.selectedSyllabusId && this.selectedChapterId) {
-      await this.svc.createQuestionUnderChapter(this.selectedExamId, this.selectedSyllabusId, this.selectedChapterId, q);
+      // also save under chapter (if selected)
+      if (this.selectedExamId && this.selectedSyllabusId && this.selectedChapterId) {
+        await this.svc.createQuestionUnderChapter(this.selectedExamId, this.selectedSyllabusId, this.selectedChapterId, q);
+      }
+
+      alert(`✅ Question saved in ${this.selectedLanguages.length} language(s): ${this.selectedLanguages.map(l => this.languageService.getLanguageName(l)).join(', ')}`);
+      this.resetQuestionForm();
+    } catch (error) {
+      console.error('Error saving question:', error);
+      alert('❌ Error saving question. Please try again.');
     }
-
-    alert('Question saved.');
-    this.resetQuestionForm();
   }
 
   private resetQuestionForm() {
-    this.questionForm.reset({ title: '', options: ['', '', '', ''], correctAnswer: '', imageUrl: '' });
-    // reinitialize options array controls
-    const opts = this.options;
-    while (opts.length) opts.removeAt(0);
-    for (let i = 0; i < 4; i++) opts.push(this.fb.control('', Validators.required));
+    this.initializeMultiLanguageQuestionForm();
   }
 
-  // ----------------- Bulk parsing and saving -----------------
-  // Bulk format: multiple blocks separated by blank line:
-  // QTitle
-  // A) optionA
-  // B) optionB
-  // C) optionC
-  // D) optionD
-  // Answer: B
-  private parseBulkText(input: string): Question[] {
+  // ==================== BULK QUESTIONS (MULTI-LANGUAGE) ====================
+  /**
+   * Enhanced bulk upload supporting multi-language questions
+   * Format 1 (Single language - legacy):
+   *   Question title?
+   *   A) Option A
+   *   B) Option B
+   *   C) Option C
+   *   D) Option D
+   *   Answer: B
+   *
+   * Format 2 (Multi-language):
+   *   [LANG:en]
+   *   Question in English?
+   *   A) Option A
+   *   B) Option B
+   *   C) Option C
+   *   D) Option D
+   *   Answer: B
+   *   [LANG:hi]
+   *   अंग्रेजी में सवाल?
+   *   A) विकल्प A
+   *   B) विकल्प B
+   *   C) विकल्प C
+   *   D) विकल्प D
+   *   Answer: B
+   *
+   *   [BLANK LINE - SEPARATES QUESTIONS]
+   *
+   *   [LANG:en]
+   *   Next question?
+   *   ...
+   */
+
+  async saveBulkQuestions() {
+    const text = this.bulkForm.value.bulkText?.trim() || '';
+    if (!text) { alert('Paste bulk questions in the text area'); return; }
+
+    // Detect format based on content
+    const isMultiLanguageFormat = text.includes('[LANG:');
+    
+    let parsed: Question[];
+    if (isMultiLanguageFormat) {
+      parsed = this.parseMultiLanguageBulkText(text);
+    } else {
+      // Legacy single-language format - convert to multi-language
+      const legacyParsed = this.parseLegacyBulkText(text);
+      parsed = legacyParsed.map(q => ({
+        ...q,
+        title: { [this.selectedLanguages[0] || 'en']: q.title as string },
+        options: { [this.selectedLanguages[0] || 'en']: q.options as string[] },
+        correctAnswer: { [this.selectedLanguages[0] || 'en']: q.correctAnswer as string },
+        languages: this.selectedLanguages.length > 0 ? this.selectedLanguages : ['en']
+      }));
+    }
+
+    if (!parsed.length) { alert('No valid questions parsed. Check format'); return; }
+
+    try {
+      const savedIds: string[] = [];
+      for (const q of parsed) {
+        // attach hierarchy if selected
+        q.examId = this.selectedExamId || undefined;
+        q.examName = this.getNameAsString(this.exams.find(e => e.id === this.selectedExamId)?.name);
+        q.syllabusId = this.selectedSyllabusId || undefined;
+        q.syllabusName = this.getNameAsString(this.syllabusList.find(s => s.id === this.selectedSyllabusId)?.name);
+        q.chapterId = this.selectedChapterId || undefined;
+        q.chapterName = this.getNameAsString(this.chapterList.find(c => c.id === this.selectedChapterId)?.name);
+
+        const top = await this.svc.createTopLevelQuestion(q);
+        savedIds.push((top as any).id);
+        
+        if (this.selectedExamId && this.selectedSyllabusId && this.selectedChapterId) {
+          await this.svc.createQuestionUnderChapter(this.selectedExamId, this.selectedSyllabusId, this.selectedChapterId, q);
+        }
+      }
+
+      const langCount = isMultiLanguageFormat ? (parsed[0]?.languages?.length || 1) : this.selectedLanguages.length;
+      const langNames = isMultiLanguageFormat 
+        ? (parsed[0]?.languages || ['en']).map(l => this.languageService.getLanguageName(l)).join(', ')
+        : this.selectedLanguages.map(l => this.languageService.getLanguageName(l)).join(', ');
+
+      alert(`✅ Imported ${parsed.length} question(s) in ${langCount} language(s): ${langNames}`);
+      this.bulkForm.reset();
+    } catch (error) {
+      console.error('Error importing questions:', error);
+      alert('❌ Error importing questions. Please check format and try again.');
+    }
+  }
+
+  /**
+   * Parse multi-language bulk text format
+   */
+  private parseMultiLanguageBulkText(input: string): Question[] {
+    const questions: Question[] = [];
+    const questionBlocks = input.split(/\n\s*\n(?=\[LANG:)/);
+
+    for (const block of questionBlocks) {
+      if (!block.trim()) continue;
+
+      const languageBlocks: { [lang: string]: { title: string; options: string[]; correct: string } } = {};
+      const langMatches = block.split(/\n(?=\[LANG:)/);
+
+      for (const langBlock of langMatches) {
+        const langMatch = langBlock.match(/\[LANG:(\w+)\]/);
+        if (!langMatch) continue;
+
+        const lang = langMatch[1];
+        const content = langBlock.replace(/\[LANG:\w+\]\n?/, '').trim();
+        const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+
+        if (lines.length < 6) continue;
+
+        const title = lines[0];
+        const options = lines.slice(1, 5).map(l => l.replace(/^[A-D]\)\s*/i, '').trim());
+        const ansLine = lines[5].replace(/^Answer:\s*/i, '').trim();
+
+        let correct = ansLine;
+        if (/^[A-D]$/i.test(correct)) {
+          const idx = correct.toUpperCase().charCodeAt(0) - 65;
+          correct = options[idx] || correct;
+        } else if (/^[A-D]\)/i.test(correct)) {
+          const letter = correct[0].toUpperCase();
+          const idx = letter.charCodeAt(0) - 65;
+          correct = options[idx] || correct;
+        }
+
+        languageBlocks[lang] = { title, options, correct };
+      }
+
+      // Only add if we have at least one language
+      if (Object.keys(languageBlocks).length > 0) {
+        const titles: { [key: string]: string } = {};
+        const optionsByLang: { [key: string]: string[] } = {};
+        const answers: { [key: string]: string } = {};
+        const langs: string[] = [];
+
+        for (const [lang, data] of Object.entries(languageBlocks)) {
+          titles[lang] = data.title;
+          optionsByLang[lang] = data.options;
+          answers[lang] = data.correct;
+          langs.push(lang);
+        }
+
+        questions.push({
+          title: titles,
+          options: optionsByLang,
+          correctAnswer: answers,
+          languages: langs
+        } as Question);
+      }
+    }
+
+    return questions;
+  }
+
+  /**
+   * Parse legacy single-language bulk text
+   */
+  private parseLegacyBulkText(input: string): Question[] {
     const blocks = input.trim().split(/\n\s*\n/);
     const questions: Question[] = [];
 
@@ -243,12 +492,10 @@ export class ExamComponent implements OnInit, OnDestroy {
       const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
       if (lines.length < 6) continue;
       const title = lines[0];
-      // lines 1..4 are options
       const options = lines.slice(1, 5).map(l => l.replace(/^[A-D]\)\s*/i, '').trim());
       const ansLine = lines[5].replace(/^Answer:\s*/i, '').trim();
-      // convert Answer "B" or "B)" or full text. We'll support both:
+
       let correct = ansLine;
-      // if ansLine is single letter A/B/C/D -> map to option
       if (/^[A-D]$/i.test(correct)) {
         const idx = correct.toUpperCase().charCodeAt(0) - 65;
         correct = options[idx] || correct;
@@ -256,7 +503,7 @@ export class ExamComponent implements OnInit, OnDestroy {
         const letter = correct[0].toUpperCase();
         const idx = letter.charCodeAt(0) - 65;
         correct = options[idx] || correct;
-      } // else assume it's exact option text
+      }
 
       questions.push({
         title,
@@ -268,46 +515,16 @@ export class ExamComponent implements OnInit, OnDestroy {
     return questions;
   }
 
-  async saveBulkQuestions() {
-    const text = this.bulkForm.value.bulkText?.trim() || '';
-    if (!text) { alert('Paste bulk questions in the text area'); return; }
-
-    const parsed = this.parseBulkText(text);
-    if (!parsed.length) { alert('No valid questions parsed. Check format'); return; }
-
-    const savedIds: string[] = [];
-    for (const q of parsed) {
-      // attach hierarchy if selected
-      q.examId = this.selectedExamId || undefined;
-      q.examName = this.exams.find(e => e.id === this.selectedExamId)?.name;
-      q.syllabusId = this.selectedSyllabusId || undefined;
-      q.syllabusName = this.syllabusList.find(s => s.id === this.selectedSyllabusId)?.name;
-      q.chapterId = this.selectedChapterId || undefined;
-      q.chapterName = this.chapterList.find(c => c.id === this.selectedChapterId)?.name;
-
-      const top = await this.svc.createTopLevelQuestion(q);
-      // top is a Promise<DocumentReference>; addDoc returns DocumentReference. We can't easily get ID from it here without importing types,
-      // but for simplicity we won't collect ids. If you want ids, replace with returned reference handling.
-      if (this.selectedExamId && this.selectedSyllabusId && this.selectedChapterId) {
-        await this.svc.createQuestionUnderChapter(this.selectedExamId, this.selectedSyllabusId, this.selectedChapterId, q);
-      }
-    }
-
-    alert(`Saved ${parsed.length} questions.`);
-    this.bulkForm.reset();
+  get selectedExamName() {
+    return this.exams?.find(e => e.id === this.selectedExamId)?.name || '—';
   }
 
-  get selectedExamName() {
-  return this.exams?.find(e => e.id === this.selectedExamId)?.name || '—';
-}
+  get selectedSyllabusName() {
+    return this.syllabusList?.find(s => s.id === this.selectedSyllabusId)?.name || '—';
+  }
 
-get selectedSyllabusName() {
-  return this.syllabusList?.find(s => s.id === this.selectedSyllabusId)?.name || '—';
-}
-
-get selectedChapterName() {
-  return this.chapterList?.find(c => c.id === this.selectedChapterId)?.name || '—';
-}
-
+  get selectedChapterName() {
+    return this.chapterList?.find(c => c.id === this.selectedChapterId)?.name || '—';
+  }
 }
 

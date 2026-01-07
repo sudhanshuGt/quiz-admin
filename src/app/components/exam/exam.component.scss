@@ -396,3 +396,96 @@ $shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
     }
   }
 }
+
+// Multi-Language Question Support
+.language-tabs-container {
+  margin: 20px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(63, 81, 181, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 8px;
+  border-left: 4px solid #3f51b5;
+
+  .language-tabs {
+    ::ng-deep {
+      .mat-mdc-tab-labels {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        overflow: hidden;
+      }
+
+      .mat-mdc-tab {
+        min-width: 120px;
+        font-weight: 500;
+
+        &.mat-mdc-tab-active {
+          .mdc-tab__text-label {
+            color: #3f51b5;
+            font-weight: 600;
+          }
+        }
+
+        .mat-mdc-tab-label-content {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+      }
+
+      .mdc-tab__text-label {
+        transition: color 0.3s ease;
+      }
+    }
+  }
+
+  .tab-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+
+    .lang-label {
+      font-weight: 500;
+    }
+  }
+
+  .tab-content-area {
+    padding: 24px 16px;
+    background: white;
+    border-radius: 0 0 8px 8px;
+    animation: slideIn 0.3s ease;
+
+    .form-group {
+      margin-bottom: 20px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Language count indicator
+.action-buttons {
+  .language-count {
+    display: inline-block;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 12px;
+  }
+}
